@@ -9,6 +9,7 @@ import "github.com/talgarr/yubikey-notifier/internal/classifier"
 func All() []classifier.Rule {
 	return []classifier.Rule{
 		SOPS{},
+		Gopass{},
 		Pass{},
 		Age{},
 		Git{},
