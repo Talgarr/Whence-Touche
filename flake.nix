@@ -7,7 +7,7 @@
     self,
     nixpkgs,
   }: let
-    version = builtins.substring 0 8 (self.lastModifiedDate or self.lastModified or "19700101");
+    version = "0.1.0";
 
     supportedSystems = ["x86_64-linux" "aarch64-linux"];
     forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
