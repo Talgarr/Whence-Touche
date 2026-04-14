@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: nix-vendor-hash
+        name: Update flake.nix vendorHash
+        language: script
+        entry: scripts/update-vendor-hash.sh
+        pass_filenames: false
+        stages: [pre-push]
