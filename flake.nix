@@ -20,7 +20,7 @@
         pname = "yubikey-notifier";
         inherit version;
         src = ./.;
-        vendorHash = "sha256-5QuPdZgS/SA7a4OUZY1yi/4e21IYkliFMKOy3YRUdcU=";
+        vendorHash = "sha256-ytwUP34hNyFWJX8Ngrzr/H99jBLfp8DZ8AKpX1PqJh0=";
 
         buildInputs = with pkgs; [libnotify];
 
