@@ -1,29 +1,10 @@
 //go:build ignore
 
-// tracer.bpf.c — kprobe-based YubiKey/security-key I/O tracer.
-//
-// Captures the PID of the process talking to a security key, across BOTH
-// interfaces the key exposes:
-//
-//   * FIDO/U2F + HMAC  -> /dev/hidrawN (usbhid). Kprobe hidraw_read/_write.
-//   * OpenPGP (CCID)   -> the CCID interface is bound to *usbfs*; scdaemon's
-//     internal CCID driver talks to it via libusb, i.e. ioctl(USBDEVFS_SUBMITURB)
-//     -> proc_do_submiturb(). Kprobe that.
-//
-// All three functions execute *in the context of the calling userspace process*,
-// so bpf_get_current_pid_tgid() here is exactly the process that issued the I/O.
-// (For CCID that process is scdaemon — the user-facing client is resolved from
-// the gpg-agent socket peer in userspace.)
-//
-// usbfs is generic, so proc_do_submiturb() fires for every libusb user
-// (fingerprint readers via fprintd, webcams, ...). We read the URB's target USB
-// device's idVendor from arg0 and emit a ccid event ONLY when the vendor is in
-// our security-key allow-list. The vendor id is used only to decide *whether* to
-// emit, so it is not carried in the event.
-//
-// No bpftool required: instead of a full vmlinux.h we hand-declare just the few
-// fields we touch and let CO-RE relocate their offsets at load time against
-// /sys/kernel/btf/vmlinux.
+// tracer.bpf.c — kprobes reporting a process doing I/O to a security key.
+//   hidraw_read/_write : FIDO/U2F/HMAC over /dev/hidrawN
+//   proc_do_submiturb  : OpenPGP over usbfs/CCID, filtered to security-key
+//                        vendors by idVendor (read via CO-RE, no vmlinux.h).
+// Each runs in the caller's context, so bpf_get_current_pid_tgid() is the client.
 
 #include <linux/bpf.h>
 #include <bpf/bpf_helpers.h>
@@ -31,8 +12,7 @@
 
 char LICENSE[] SEC("license") = "GPL";
 
-// Vendor IDs whose USB devices we treat as security keys. Currently just Yubico;
-// add other FIDO/security-key vendors here (e.g. Feitian, SoloKeys, Nitrokey).
+// Vendor IDs treated as security keys.
 static const __u16 security_key_vids[] = {
 	0x1050, // Yubico
 };
@@ -47,31 +27,30 @@ static __always_inline int is_security_key_vid(__u16 vid)
 	return 0;
 }
 
-// Minimal CO-RE "views" of kernel types: only the field we read (idVendor).
+// Minimal CO-RE views; offsets relocated against the running kernel's BTF.
 #pragma clang attribute push(__attribute__((preserve_access_index)), apply_to = record)
 struct usb_device_descriptor {
 	__u16 idVendor;
 };
 struct usb_device {
-	struct usb_device_descriptor descriptor; // embedded, not a pointer
+	struct usb_device_descriptor descriptor;
 };
 struct usb_dev_state {
 	struct usb_device *dev;
 };
-// x86_64 kprobe context: 1st integer arg is in 'di'.
 struct pt_regs {
-	unsigned long di;
+	unsigned long di; // x86_64 arg1
 };
 #pragma clang attribute pop
 
-// event.flags bits — source and direction packed into one byte.
-#define EV_WRITE 0x1 // set: write (host->key); clear: read (key->host)
-#define EV_CCID  0x2 // set: ccid/usbfs (OpenPGP); clear: hidraw (FIDO/U2F/HMAC)
+// event.flags bits.
+#define EV_WRITE 0x1 // write (host->key) vs read
+#define EV_CCID  0x2 // ccid (OpenPGP) vs hidraw (FIDO)
 
-// Mirrored by `type rawEvent struct` in tracer.go. Keep field order/sizes in sync.
+// Mirrored by rawEvent in tracer.go.
 struct event {
-	__u32 pid;   // process (TGID) that issued the I/O
-	__u8  flags; // EV_WRITE | EV_CCID
+	__u32 pid;
+	__u8  flags;
 };
 
 struct {
@@ -84,10 +63,8 @@ static __always_inline int emit(__u8 flags)
 	struct event *e = bpf_ringbuf_reserve(&events, sizeof(*e), 0);
 	if (!e)
 		return 0;
-
-	e->pid = bpf_get_current_pid_tgid() >> 32; // high 32 bits = TGID
+	e->pid = bpf_get_current_pid_tgid() >> 32;
 	e->flags = flags;
-
 	bpf_ringbuf_submit(e, 0);
 	return 0;
 }
@@ -104,14 +81,13 @@ int kprobe_hidraw_read(void *ctx)
 	return emit(0);
 }
 
+// proc_do_submiturb(struct usb_dev_state *ps, ...): usbfs URB submit.
 SEC("kprobe/proc_do_submiturb")
 int kprobe_proc_do_submiturb(struct pt_regs *ctx)
 {
 	struct usb_dev_state *ps = (struct usb_dev_state *)BPF_CORE_READ(ctx, di);
-
 	__u16 vid = BPF_CORE_READ(ps, dev, descriptor.idVendor);
 	if (!is_security_key_vid(vid))
 		return 0;
-
 	return emit(EV_CCID | EV_WRITE);
 }

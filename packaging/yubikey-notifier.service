@@ -1,14 +1,12 @@
 [Unit]
 Description=YubiKey touch notifier
 Documentation=https://github.com/talgarr/yubikey-notifier
-# A user unit: runs in your session, so the desktop notification bus is present.
 After=graphical-session.target
 PartOf=graphical-session.target
 
 [Service]
+# Privilege comes from the binary's file caps; do not set NoNewPrivileges.
 Type=simple
-# eBPF privilege comes from file capabilities on the binary (set at install),
-# not from running as root — so do NOT set NoNewPrivileges, which would drop them.
 ExecStart=/usr/bin/yubikey-notifier
 Environment=YUBIKEY_TRACER_OBJ_PATH=/usr/lib/yubikey-notifier/tracer.bpf.o
 Restart=on-failure

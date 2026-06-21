@@ -1,11 +1,5 @@
-// yubikey-notifier watches YubiKey activity via eBPF (the internal/tracer
-// package), walks the calling process tree to classify the operation, and shows
-// a desktop notification that dismisses itself once the touch is complete.
-//
-// It replaces the previous yubikey-touch-detector D-Bus listener. Because eBPF
-// reports a raw I/O firehose (not the detector's clean ON/OFF), the event loop
-// debounces: a notification is shown once a process accumulates a few I/Os to
-// the key, and dismissed after the key goes quiet (touch finished).
+// yubikey-notifier watches YubiKey activity via eBPF, classifies the calling
+// process, and shows a desktop notification that clears when the touch is done.
 package main
 
 import (
@@ -26,10 +20,8 @@ import (
 	"github.com/talgarr/yubikey-notifier/internal/tracer"
 )
 
-// sessionKey groups events into one logical touch. For hidraw the PID is the
-// real client, so concurrent FIDO touches stay distinct. For ccid the PID is
-// always scdaemon, so all GPG activity collapses into one session (fine: GPG
-// touches are effectively serialized through scdaemon).
+// sessionKey groups events into one logical touch. hidraw uses the client PID;
+// ccid always uses scdaemon, so GPG activity collapses into one session.
 type sessionKey struct {
 	src tracer.Source
 	pid uint32
@@ -59,8 +51,6 @@ func main() {
 	if cfgErr != nil {
 		log.Fatal().Err(cfgErr).Msg("load config")
 	}
-
-	restoreSessionBus()
 
 	tr, err := tracer.New(*objPath)
 	if err != nil {
@@ -101,32 +91,7 @@ func main() {
 	}
 }
 
-// restoreSessionBus makes desktop notifications reach the *invoking* user's
-// session bus when the daemon is started as root via sudo. eBPF needs
-// privilege, but a root process's D-Bus session points at root's (absent) bus,
-// so notifications silently fail. When we're root and were sudo'd, derive the
-// user's bus/runtime dir from SUDO_UID unless already set (e.g. by `sudo -E`).
-// Running unprivileged (the file-capabilities path) skips this entirely.
-func restoreSessionBus() {
-	if os.Geteuid() != 0 {
-		return
-	}
-	uid := os.Getenv("SUDO_UID")
-	if uid == "" {
-		return
-	}
-	if os.Getenv("XDG_RUNTIME_DIR") == "" {
-		os.Setenv("XDG_RUNTIME_DIR", "/run/user/"+uid)
-	}
-	if os.Getenv("DBUS_SESSION_BUS_ADDRESS") == "" {
-		addr := "unix:path=/run/user/" + uid + "/bus"
-		os.Setenv("DBUS_SESSION_BUS_ADDRESS", addr)
-		log.Debug().Str("addr", addr).Msg("derived session bus from SUDO_UID")
-	}
-}
-
-// handleEvent records an I/O against its session, showing a notification once
-// the session crosses the notify threshold.
+// handleEvent records an I/O and notifies once a session crosses the threshold.
 func handleEvent(allRules []clsf.Rule, sessions map[sessionKey]*session, ev tracer.Event, threshold int) {
 	key := sessionKey{ev.Source, ev.PID}
 	s := sessions[key]
@@ -153,17 +118,9 @@ func handleEvent(allRules []clsf.Rule, sessions map[sessionKey]*session, ev trac
 	s.notifID = id
 }
 
-// buildBody resolves the user-facing process behind an event and renders a
-// notification body.
-//
-// The PID that issued the I/O is not always the tool that asked for it: when a
-// request is routed through an agent daemon, the real client is a socket peer of
-// that agent, not a process ancestor of the I/O leaf. We resolve those via
-// agentpeer:
-//   - CCID/GPG: the event PID is always scdaemon → resolve the gpg-agent peer.
-//   - hidraw/SSH: the event PID is normally the client leaf (ssh-sk-helper with
-//     ssh as its parent), but when the key is held in ssh-agent the leaf's
-//     parent is ssh-agent and the real ssh is a socket peer → resolve that.
+// buildBody resolves the calling process and renders the notification text. CCID
+// is attributed to scdaemon, so the GPG client comes from the gpg-agent socket
+// peer; ssh-agent-mediated FIDO is resolved the same way.
 func buildBody(allRules []clsf.Rule, ev tracer.Event) string {
 	pid := ev.PID
 	if ev.Source == tracer.SourceCCID {
@@ -180,8 +137,6 @@ func buildBody(allRules []clsf.Rule, ev tracer.Event) string {
 		return fmt.Sprintf("%s: pid %d (process gone)", ev.Source.Kind(), pid)
 	}
 
-	// SSH via ssh-agent: ssh-sk-helper was forked by ssh-agent, so the real ssh
-	// client (and its host) is a socket peer absent from this tree. Re-resolve.
 	if ev.Source == tracer.SourceHIDRaw &&
 		clsf.Has(tree, "ssh-sk-helper") && clsf.Has(tree, "ssh-agent") && !clsf.Has(tree, "ssh") {
 		if client := agentpeer.SSHAgent.FindClientPID(); client != 0 {

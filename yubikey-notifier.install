@@ -1,21 +1,16 @@
 _setcaps() {
-    # eBPF load/attach needs these; granting them on the binary lets it run as a
-    # normal user (no root), so desktop notifications reach the user session bus.
+    # eBPF caps, so the daemon runs as your user (notifications need the session bus).
     setcap cap_bpf,cap_perfmon,cap_sys_admin+ep /usr/bin/yubikey-notifier
 }
 
 post_install() {
     _setcaps
     cat <<'MSG'
-==> Enable it for your user (NOT root):
-==>     systemctl --user enable --now yubikey-notifier.service
-==> Requires a running notification daemon (dunst/mako/swaync).
-==> If GPG/SSH client resolution comes back empty, add cap_net_admin:
-==>     sudo setcap cap_bpf,cap_perfmon,cap_sys_admin,cap_net_admin+ep /usr/bin/yubikey-notifier
+==> Enable for your user: systemctl --user enable --now yubikey-notifier.service
+==> Needs a notification daemon (dunst/mako/swaync).
 MSG
 }
 
 post_upgrade() {
-    # File capabilities are dropped when the binary is replaced; re-apply them.
     _setcaps
 }

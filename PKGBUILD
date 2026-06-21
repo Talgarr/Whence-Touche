@@ -24,18 +24,13 @@ pkgver() {
 
 build() {
     cd "$_pkgname"
-    # BPF object (CO-RE; relocated against the running kernel's BTF at load time).
-    clang -O2 -g -Wall -target bpf -I/usr/include \
-        -c internal/tracer/tracer.bpf.c -o internal/tracer/tracer.bpf.o
-    go build -trimpath -ldflags "-s -w" -o yubikey-notifier .
+    make
 }
 
 package() {
     cd "$_pkgname"
     install -Dm755 yubikey-notifier "$pkgdir/usr/bin/yubikey-notifier"
-    # Loaded at runtime; the user unit points YUBIKEY_TRACER_OBJ_PATH here.
-    install -Dm644 internal/tracer/tracer.bpf.o "$pkgdir/usr/lib/yubikey-notifier/tracer.bpf.o"
-    # systemd user unit: each user enables it with `systemctl --user enable`.
+    install -Dm644 tracer.bpf.o "$pkgdir/usr/lib/yubikey-notifier/tracer.bpf.o"
     install -Dm644 packaging/yubikey-notifier.service "$pkgdir/usr/lib/systemd/user/yubikey-notifier.service"
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
