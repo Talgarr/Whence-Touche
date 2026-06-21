@@ -35,8 +35,8 @@ type session struct {
 }
 
 func main() {
-	verbose := flag.Bool("verbose", false, "enable debug logging")
 	cfg, cfgErr := config.Load()
+	verbose := flag.Bool("verbose", cfg.Debug, "enable debug logging (or set YUBIKEY_DEBUG=true)")
 	objPath := flag.String("bpf-object", cfg.ObjectPath, "path to tracer.bpf.o (overrides $YUBIKEY_TRACER_OBJ_PATH)")
 	flag.Parse()
 

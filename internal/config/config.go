@@ -17,6 +17,7 @@ type Config struct {
 	NotifyThreshold int           `envconfig:"NOTIFY_THRESHOLD" default:"3"`
 	Quiet           time.Duration `envconfig:"QUIET" default:"500ms"`
 	Sweep           time.Duration `envconfig:"SWEEP" default:"200ms"`
+	Debug           bool          `envconfig:"DEBUG"`
 }
 
 // Load reads config from the environment (prefix YUBIKEY_).

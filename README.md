@@ -74,6 +74,7 @@ All settings are loaded once in `main` from `internal/config` (via `envconfig`):
 | `YUBIKEY_NOTIFY_THRESHOLD` | `3` | I/O events before a notification shows |
 | `YUBIKEY_QUIET` | `500ms` | silence before a touch is considered done |
 | `YUBIKEY_SWEEP` | `200ms` | how often idle sessions are checked |
+| `YUBIKEY_DEBUG` | `false` | debug logging (same as `-verbose`) |
 
 ## Run
 
