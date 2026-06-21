@@ -2,7 +2,10 @@
 // YubiKey touch request by inspecting the process call tree.
 package classifier
 
-import "path/filepath"
+import (
+	"path/filepath"
+	"strings"
+)
 
 // Process is one node in the call tree, oldest ancestor first.
 type Process struct {
@@ -15,7 +18,11 @@ type Process struct {
 // present, kernel comm otherwise.
 func (p Process) Name() string {
 	if len(p.Args) > 0 {
-		return filepath.Base(p.Args[0])
+		// argv[0] may be a rewritten process title holding the whole command
+		// line (e.g. Chromium has no NUL separators), so take its first field.
+		if fields := strings.Fields(p.Args[0]); len(fields) > 0 {
+			return filepath.Base(fields[0])
+		}
 	}
 	return p.Comm
 }
