@@ -1,0 +1,15 @@
+[Unit]
+Description=Whence Touché — YubiKey touch notifier
+Documentation=https://github.com/Talgarr/Whence-Touche
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+# Privilege comes from the binary's file caps; do not set NoNewPrivileges.
+Type=simple
+ExecStart=/usr/bin/whence-touche
+Environment=WHENCE_TRACER_OBJ_PATH=/usr/lib/whence-touche/tracer.bpf.o
+Restart=on-failure
+
+[Install]
+WantedBy=graphical-session.target

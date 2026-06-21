@@ -31,7 +31,7 @@ func TouchNeeded(body string) (uint32, error) {
 
 	call := conn.Object(dest, opath).Call(
 		iface+".Notify", 0,
-		"yubikey-notifier",   // app_name
+		"Whence Touché",      // app_name
 		uint32(0),            // replaces_id  (0 = new notification)
 		"dialog-password",    // app_icon
 		"Touch your YubiKey", // summary

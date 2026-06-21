@@ -3,7 +3,7 @@ package rules
 import (
 	"strings"
 
-	"github.com/talgarr/yubikey-notifier/internal/classifier"
+	"github.com/Talgarr/Whence-Touche/internal/classifier"
 )
 
 // Age matches age/rage file encryption/decryption operations.

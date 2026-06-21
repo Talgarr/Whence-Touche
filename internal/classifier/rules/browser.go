@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/talgarr/yubikey-notifier/internal/classifier"
+	"github.com/Talgarr/Whence-Touche/internal/classifier"
 )
 
 // Browser matches WebAuthn/passkey touch requests from browser processes.

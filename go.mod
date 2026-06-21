@@ -1,4 +1,4 @@
-module github.com/talgarr/yubikey-notifier
+module github.com/Talgarr/Whence-Touche
 
 go 1.24.0
 

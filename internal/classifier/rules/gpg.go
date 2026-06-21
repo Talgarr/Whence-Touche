@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/talgarr/yubikey-notifier/internal/classifier"
+	"github.com/Talgarr/Whence-Touche/internal/classifier"
 )
 
 // GPG matches GPG/GPG2 operations routed through gpg-agent and scdaemon.

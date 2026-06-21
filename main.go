@@ -1,4 +1,4 @@
-// yubikey-notifier watches YubiKey activity via eBPF, classifies the calling
+// Whence Touché watches YubiKey activity via eBPF, classifies the calling
 // process, and shows a desktop notification that clears when the touch is done.
 package main
 
@@ -11,13 +11,13 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/talgarr/yubikey-notifier/internal/agentpeer"
-	clsf "github.com/talgarr/yubikey-notifier/internal/classifier"
-	"github.com/talgarr/yubikey-notifier/internal/classifier/rules"
-	"github.com/talgarr/yubikey-notifier/internal/config"
-	"github.com/talgarr/yubikey-notifier/internal/notifier"
-	"github.com/talgarr/yubikey-notifier/internal/proctree"
-	"github.com/talgarr/yubikey-notifier/internal/tracer"
+	"github.com/Talgarr/Whence-Touche/internal/agentpeer"
+	clsf "github.com/Talgarr/Whence-Touche/internal/classifier"
+	"github.com/Talgarr/Whence-Touche/internal/classifier/rules"
+	"github.com/Talgarr/Whence-Touche/internal/config"
+	"github.com/Talgarr/Whence-Touche/internal/notifier"
+	"github.com/Talgarr/Whence-Touche/internal/proctree"
+	"github.com/Talgarr/Whence-Touche/internal/tracer"
 )
 
 // sessionKey groups events into one logical touch. hidraw uses the client PID;
@@ -36,8 +36,8 @@ type session struct {
 
 func main() {
 	cfg, cfgErr := config.Load()
-	verbose := flag.Bool("verbose", cfg.Debug, "enable debug logging (or set YUBIKEY_DEBUG=true)")
-	objPath := flag.String("bpf-object", cfg.ObjectPath, "path to tracer.bpf.o (overrides $YUBIKEY_TRACER_OBJ_PATH)")
+	verbose := flag.Bool("verbose", cfg.Debug, "enable debug logging (or set WHENCE_DEBUG=true)")
+	objPath := flag.String("bpf-object", cfg.ObjectPath, "path to tracer.bpf.o (overrides $WHENCE_TRACER_OBJ_PATH)")
 	flag.Parse()
 
 	level := zerolog.InfoLevel
@@ -46,7 +46,7 @@ func main() {
 	}
 	log.Logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr}).
 		Level(level).
-		With().Timestamp().Str("bin", "yubikey-notifier").Logger()
+		With().Timestamp().Str("bin", "whence-touche").Logger()
 
 	if cfgErr != nil {
 		log.Fatal().Err(cfgErr).Msg("load config")

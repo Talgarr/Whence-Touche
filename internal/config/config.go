@@ -1,4 +1,4 @@
-// Package config loads yubikey-notifier settings from the environment.
+// Package config loads Whence Touché settings from the environment.
 package config
 
 import (
@@ -9,7 +9,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
-const envPrefix = "YUBIKEY"
+const envPrefix = "WHENCE"
 
 type Config struct {
 	// ObjectPath defaults to tracer.bpf.o next to the executable.
@@ -20,7 +20,7 @@ type Config struct {
 	Debug           bool          `envconfig:"DEBUG"`
 }
 
-// Load reads config from the environment (prefix YUBIKEY_).
+// Load reads config from the environment (prefix WHENCE_).
 func Load() (Config, error) {
 	var c Config
 	if err := envconfig.Process(envPrefix, &c); err != nil {

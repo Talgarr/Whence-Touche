@@ -1,7 +1,7 @@
 BPF_CLANG ?= clang
 BPF_SRC   := internal/tracer/tracer.bpf.c
 BPF_OBJ   := tracer.bpf.o
-BIN       := yubikey-notifier
+BIN       := whence-touche
 GO_SRCS   := $(shell find . -name '*.go') go.mod go.sum
 
 .PHONY: all clean run setcap
