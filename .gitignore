@@ -1,2 +1,6 @@
 .claude/
 vendor/
+
+# build artifacts
+/yubikey-notifier
+*.o
