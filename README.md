@@ -51,6 +51,7 @@ Environment variables (prefix `WHENCE_`):
 |---|---|---|
 | `WHENCE_TRACER_OBJ_PATH` | next to the binary | path to `tracer.bpf.o` |
 | `WHENCE_NOTIFY_THRESHOLD` | `3` | I/O events before notifying |
+| `WHENCE_NOTIFY_DELAY` | `200ms` | sustained activity before notifying |
 | `WHENCE_QUIET` | `500ms` | silence before a touch is considered done |
 | `WHENCE_SWEEP` | `200ms` | how often idle sessions are checked |
 | `WHENCE_DEBUG` | `false` | debug logging (same as `-verbose`) |

@@ -13,11 +13,12 @@ const envPrefix = "WHENCE"
 
 type Config struct {
 	// ObjectPath defaults to tracer.bpf.o next to the executable.
-	ObjectPath      string        `envconfig:"TRACER_OBJ_PATH"`
-	NotifyThreshold int           `envconfig:"NOTIFY_THRESHOLD" default:"3"`
-	Quiet           time.Duration `envconfig:"QUIET" default:"500ms"`
-	Sweep           time.Duration `envconfig:"SWEEP" default:"200ms"`
-	Debug           bool          `envconfig:"DEBUG"`
+	ObjectPath      string `envconfig:"TRACER_OBJ_PATH"`
+	NotifyThreshold int    `envconfig:"NOTIFY_THRESHOLD" default:"3"`
+	NotifyDelay time.Duration `envconfig:"NOTIFY_DELAY" default:"200ms"`
+	Quiet       time.Duration `envconfig:"QUIET" default:"500ms"`
+	Sweep       time.Duration `envconfig:"SWEEP" default:"200ms"`
+	Debug       bool          `envconfig:"DEBUG"`
 }
 
 // Load reads config from the environment (prefix WHENCE_).
