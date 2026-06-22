@@ -1,27 +1,31 @@
 BPF_CLANG ?= clang
 BPF_SRC   := internal/tracer/tracer.bpf.c
-BPF_OBJ   := tracer.bpf.o
+BPF_OBJ   := internal/tracer/tracer.bpf.o
 BIN       := whence-touche
 GO_SRCS   := $(shell find . -name '*.go') go.mod go.sum
+CAPS      := cap_bpf,cap_perfmon,cap_sys_admin+ep
 
-.PHONY: all clean run setcap
+.PHONY: all build clean run setcap
 
-# Single build entry (used by the PKGBUILD): BPF object + binary.
-all: $(BIN)
+# Default: build the binary, then grant it the eBPF caps so it runs unprivileged.
+all: setcap
 
-# Built next to the binary, where the runtime default looks for it.
+# Build only — used by the PKGBUILD, which grants caps at install time instead.
+build: $(BIN)
+
+# Compiled next to tracer.go so the Go build can //go:embed it into the binary.
 $(BPF_OBJ): $(BPF_SRC)
 	$(BPF_CLANG) -O2 -g -Wall -target bpf -I/usr/include -c $< -o $@
 
 $(BIN): $(BPF_OBJ) $(GO_SRCS)
 	go build -o $(BIN) .
 
-# Grant eBPF caps so the binary runs unprivileged; re-run after each build.
+# Grant eBPF caps so the binary runs unprivileged; needs sudo, re-applied per build.
 setcap: $(BIN)
-	sudo setcap cap_bpf,cap_perfmon,cap_sys_admin+ep ./$(BIN)
+	sudo setcap $(CAPS) ./$(BIN)
 
 # -E keeps the session bus so notifications reach your desktop.
-run: all
+run: build
 	sudo -E ./$(BIN) -verbose
 
 clean:

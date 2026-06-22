@@ -1,7 +1,7 @@
 # Maintainer: talgarr
 pkgname=whence-touche-git
 _pkgname=whence-touche
-pkgver=r9.ef5d003
+pkgver=r21.0cb9362
 pkgrel=1
 pkgdesc="Whence Touché — shows which tool triggered a YubiKey touch (eBPF-based)"
 arch=('x86_64')
@@ -24,13 +24,12 @@ pkgver() {
 
 build() {
     cd "$_pkgname"
-    make
+    make build
 }
 
 package() {
     cd "$_pkgname"
     install -Dm755 whence-touche "$pkgdir/usr/bin/whence-touche"
-    install -Dm644 tracer.bpf.o "$pkgdir/usr/lib/whence-touche/tracer.bpf.o"
     install -Dm644 packaging/whence-touche.service "$pkgdir/usr/lib/systemd/user/whence-touche.service"
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
