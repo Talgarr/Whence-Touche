@@ -51,17 +51,10 @@ Environment variables (prefix `WHENCE_`):
 |---|---|---|
 | `WHENCE_TRACER_OBJ_PATH` | next to the binary | path to `tracer.bpf.o` |
 | `WHENCE_NOTIFY_THRESHOLD` | `3` | I/O events before notifying |
-| `WHENCE_NOTIFY_DELAY` | `500ms` | sustained activity before notifying |
+| `WHENCE_NOTIFY_DELAY` | `200ms` | sustained activity before notifying |
 | `WHENCE_QUIET` | `500ms` | silence before a touch is considered done |
 | `WHENCE_SWEEP` | `200ms` | how often idle sessions are checked |
 | `WHENCE_DEBUG` | `false` | debug logging (same as `-verbose`) |
-
-`WHENCE_NOTIFY_DELAY` exists to avoid a notification "flash" when a key also
-asks for a PIN (GPG, WebAuthn): the short command exchange before the PIN
-prompt is over in milliseconds, while a real touch-wait keeps the device
-polling until you touch. Requiring activity to persist for this long means the
-pre-PIN burst never raises a notification, so there is nothing to close during
-the prompt and reopen after.
 
 ## Supported tools
 
