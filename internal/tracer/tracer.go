@@ -5,6 +5,7 @@ package tracer
 
 import (
 	"bytes"
+	_ "embed"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -15,6 +16,13 @@ import (
 	"github.com/cilium/ebpf/rlimit"
 	"golang.org/x/sys/unix"
 )
+
+// embeddedObject is the compiled BPF object baked into the binary at build time,
+// so the default path needs no filesystem read at startup. The Makefile compiles
+// tracer.bpf.o into this directory for the embed to pick up.
+//
+//go:embed tracer.bpf.o
+var embeddedObject []byte
 
 // Source is the transport an event came from.
 type Source uint8
@@ -73,8 +81,9 @@ type Tracer struct {
 	events chan Event
 }
 
-// New loads the BPF object, attaches the kprobes, and starts draining events.
-func New(objectPath string) (*Tracer, error) {
+// New loads the embedded BPF object, attaches the kprobes, and starts draining
+// events.
+func New() (*Tracer, error) {
 	// File caps mark us non-dumpable, hiding /proc/self/mem, which cilium reads
 	// to detect the kernel version while loading kprobes. Restore dumpability.
 	_ = unix.Prctl(unix.PR_SET_DUMPABLE, 1, 0, 0, 0)
@@ -82,9 +91,9 @@ func New(objectPath string) (*Tracer, error) {
 	// Best-effort: only needed (and only permitted) on kernels < 5.11.
 	_ = rlimit.RemoveMemlock()
 
-	spec, err := ebpf.LoadCollectionSpec(objectPath)
+	spec, err := ebpf.LoadCollectionSpecFromReader(bytes.NewReader(embeddedObject))
 	if err != nil {
-		return nil, fmt.Errorf("load %s: %w", objectPath, err)
+		return nil, fmt.Errorf("load embedded BPF object: %w", err)
 	}
 
 	coll, err := ebpf.NewCollection(spec)
@@ -98,7 +107,7 @@ func New(objectPath string) (*Tracer, error) {
 		prog := coll.Programs[progName]
 		if prog == nil {
 			t.teardown()
-			return nil, fmt.Errorf("program %q not found in %s", progName, objectPath)
+			return nil, fmt.Errorf("program %q not found in BPF object", progName)
 		}
 		kp, err := link.Kprobe(sym, prog, nil)
 		if err != nil {

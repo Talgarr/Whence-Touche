@@ -32,8 +32,8 @@ Only **YubiKey** security keys are supported for now.
 ## Build & run
 
 ```
-make && make setcap     # build, then grant caps to run unprivileged
-./whence-touche          # or: make run  (uses sudo)
+make             # build, then grant caps (sudo) so it runs unprivileged
+./whence-touche  # or: make run  (uses sudo)
 ```
 
 Or install the Arch package and enable the user service:
@@ -49,7 +49,6 @@ Environment variables (prefix `WHENCE_`):
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `WHENCE_TRACER_OBJ_PATH` | next to the binary | path to `tracer.bpf.o` |
 | `WHENCE_NOTIFY_THRESHOLD` | `3` | I/O events before notifying |
 | `WHENCE_QUIET` | `500ms` | silence before a touch is considered done |
 | `WHENCE_SWEEP` | `200ms` | how often idle sessions are checked |

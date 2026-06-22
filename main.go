@@ -37,7 +37,6 @@ type session struct {
 func main() {
 	cfg, cfgErr := config.Load()
 	verbose := flag.Bool("verbose", cfg.Debug, "enable debug logging (or set WHENCE_DEBUG=true)")
-	objPath := flag.String("bpf-object", cfg.ObjectPath, "path to tracer.bpf.o (overrides $WHENCE_TRACER_OBJ_PATH)")
 	flag.Parse()
 
 	level := zerolog.InfoLevel
@@ -52,7 +51,7 @@ func main() {
 		log.Fatal().Err(cfgErr).Msg("load config")
 	}
 
-	tr, err := tracer.New(*objPath)
+	tr, err := tracer.New()
 	if err != nil {
 		log.Fatal().Err(err).Msg("start eBPF tracer (run as root / with CAP_BPF?)")
 	}
