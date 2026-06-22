@@ -11,6 +11,7 @@ const envPrefix = "WHENCE"
 
 type Config struct {
 	NotifyThreshold int           `envconfig:"NOTIFY_THRESHOLD" default:"3"`
+	NotifyDelay     time.Duration `envconfig:"NOTIFY_DELAY" default:"200ms"`
 	Quiet           time.Duration `envconfig:"QUIET" default:"500ms"`
 	Sweep           time.Duration `envconfig:"SWEEP" default:"200ms"`
 	Debug           bool          `envconfig:"DEBUG"`

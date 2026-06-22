@@ -28,10 +28,22 @@ type sessionKey struct {
 }
 
 type session struct {
-	count    int
-	lastSeen time.Time
-	notifID  uint32
-	shown    bool
+	count     int
+	firstSeen time.Time
+	lastSeen  time.Time
+	notifID   uint32
+	shown     bool
+}
+
+// ready reports whether the session has shown enough sustained activity to
+// warrant a notification: at least `threshold` I/O events spanning at least
+// `delay` of wall-clock time. The dwell requirement is what filters out the
+// brief command/PIN-probe burst that precedes PIN entry, so we don't pop a
+// notification that closes during the PIN prompt and reopens after — the
+// "flash" from issue #1. A genuine touch-wait keeps the device polling until
+// the user touches, so its span clears `delay` comfortably.
+func (s *session) ready(threshold int, delay time.Duration) bool {
+	return !s.shown && s.count >= threshold && s.lastSeen.Sub(s.firstSeen) >= delay
 }
 
 func main() {
@@ -72,7 +84,7 @@ func main() {
 				log.Warn().Msg("tracer event stream closed")
 				return
 			}
-			handleEvent(allRules, sessions, ev, cfg.NotifyThreshold)
+			handleEvent(allRules, sessions, ev, cfg.NotifyThreshold, cfg.NotifyDelay)
 
 		case <-ticker.C:
 			now := time.Now()
@@ -90,18 +102,20 @@ func main() {
 	}
 }
 
-// handleEvent records an I/O and notifies once a session crosses the threshold.
-func handleEvent(allRules []clsf.Rule, sessions map[sessionKey]*session, ev tracer.Event, threshold int) {
+// handleEvent records an I/O and notifies once a session shows sustained
+// activity (see session.ready).
+func handleEvent(allRules []clsf.Rule, sessions map[sessionKey]*session, ev tracer.Event, threshold int, delay time.Duration) {
 	key := sessionKey{ev.Source, ev.PID}
 	s := sessions[key]
+	now := time.Now()
 	if s == nil {
-		s = &session{}
+		s = &session{firstSeen: now}
 		sessions[key] = s
 	}
 	s.count++
-	s.lastSeen = time.Now()
+	s.lastSeen = now
 
-	if s.shown || s.count < threshold {
+	if !s.ready(threshold, delay) {
 		return
 	}
 	s.shown = true
