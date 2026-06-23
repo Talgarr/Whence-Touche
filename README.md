@@ -79,6 +79,7 @@ Environment variables (prefix `WHENCE_`):
 | `git` | push, pull, fetch, clone, signed commit |
 | `gpg` / `gpg2` | sign, decrypt, encrypt, verify |
 | `ssh` / `scp` / `sftp` | authenticate |
+| `yubikey-agent` | SSH authenticate (PIV) |
 | browsers | WebAuthn / passkey |
 
 Unrecognised callers show the raw process chain.
