@@ -78,6 +78,7 @@ Environment variables (prefix `WHENCE_`):
 | `age` / `rage` | encrypt, decrypt |
 | `git` | push, pull, fetch, clone, signed commit |
 | `gpg` / `gpg2` | sign, decrypt, encrypt, verify |
+| `cosign` | sign, sign-blob, attest (PIV / PKCS#11) |
 | `ssh` / `scp` / `sftp` | authenticate |
 | browsers | WebAuthn / passkey |
 

@@ -14,6 +14,7 @@ func All() []classifier.Rule {
 		Age{},
 		Git{},
 		GPG{},
+		Cosign{},
 		Browser{},
 		SSH{},
 	}
