@@ -74,6 +74,7 @@ Environment variables (prefix `WHENCE_`):
 | Tool | Operations |
 |---|---|
 | `pass` | show, insert, generate, edit |
+| `1password` / `op` | authenticate (security-key 2FA) |
 | `sops` | encrypt, decrypt, edit, rotate |
 | `age` / `rage` | encrypt, decrypt |
 | `git` | push, pull, fetch, clone, signed commit |
