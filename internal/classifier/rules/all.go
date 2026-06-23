@@ -15,6 +15,7 @@ func All() []classifier.Rule {
 		Git{},
 		GPG{},
 		Browser{},
+		Auth{},
 		SSH{},
 	}
 }

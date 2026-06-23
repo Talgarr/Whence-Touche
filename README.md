@@ -80,6 +80,7 @@ Environment variables (prefix `WHENCE_`):
 | `gpg` / `gpg2` | sign, decrypt, encrypt, verify |
 | `ssh` / `scp` / `sftp` | authenticate |
 | browsers | WebAuthn / passkey |
+| `sudo` / `login` / `pkexec` / screen lockers | authenticate (pam_u2f / FIDO2) |
 
 Unrecognised callers show the raw process chain.
 
