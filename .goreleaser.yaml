@@ -105,7 +105,7 @@ signs:
     artifacts: checksum
     args:
       - sign-blob
-      - "--bundle=${signature}" # cosign v4: cert + signature in one .sigstore.json
+      - "--bundle=${signature}"
       - "${artifact}"
       - "--yes"
 
