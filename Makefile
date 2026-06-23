@@ -5,6 +5,13 @@ BIN       := whence-touche
 GO_SRCS   := $(shell find . -name '*.go') go.mod go.sum
 CAPS      := cap_bpf,cap_perfmon,cap_sys_admin+ep
 
+# Debian/Ubuntu keep the arch-specific <asm/*.h> uapi headers under a multiarch
+# triplet (e.g. /usr/include/x86_64-linux-gnu); Arch keeps them in /usr/include.
+# Add the triplet dir only when it exists, so the BPF object compiles on both.
+ARCH_TRIPLET := $(shell uname -m)-linux-gnu
+BPF_CFLAGS   := -O2 -g -Wall -target bpf -I/usr/include \
+                $(if $(wildcard /usr/include/$(ARCH_TRIPLET)/asm),-I/usr/include/$(ARCH_TRIPLET))
+
 .PHONY: all build clean run setcap
 
 # Default: build the binary, then grant it the eBPF caps so it runs unprivileged.
@@ -15,7 +22,7 @@ build: $(BIN)
 
 # Compiled next to tracer.go so the Go build can //go:embed it into the binary.
 $(BPF_OBJ): $(BPF_SRC)
-	$(BPF_CLANG) -O2 -g -Wall -target bpf -I/usr/include -c $< -o $@
+	$(BPF_CLANG) $(BPF_CFLAGS) -c $< -o $@
 
 $(BIN): $(BPF_OBJ) $(GO_SRCS)
 	go build -o $(BIN) .
