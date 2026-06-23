@@ -1,0 +1,56 @@
+name: ci
+
+# Build, vet, and test on every PR (and on pushes to main) so packaging /
+# eBPF-build regressions are caught before a release tag is cut.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version: stable
+
+      # Same eBPF build deps as the release workflow (see Makefile):
+      #   <linux/bpf.h>            -> linux-libc-dev
+      #   <bpf/bpf_helpers.h>, ... -> libbpf-dev
+      - name: Install eBPF build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm libbpf-dev linux-libc-dev
+
+      - name: gofmt
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "These files need gofmt:"; echo "$unformatted"; exit 1
+          fi
+
+      - name: Build (BPF object + binary)
+        run: make build
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+      # Exercise the full release build — binary + deb/rpm/apk/archlinux packages
+      # — without publishing, so packaging config regressions fail the PR too.
+      - name: GoReleaser snapshot
+        uses: goreleaser/goreleaser-action@5daf1e915a5f0af01ddbcd89a43b8061ff4f1a89 # v7.2.2
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --snapshot --clean --skip=publish,sign,sbom
