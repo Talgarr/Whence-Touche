@@ -5,7 +5,5 @@ vendor/
 /whence-touche
 *.o
 
-# makepkg outputs (when building the package from the repo root)
-/src/
-/pkg/
-*.pkg.tar.zst
+# goreleaser output
+/dist/

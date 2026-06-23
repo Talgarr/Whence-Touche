@@ -10,7 +10,7 @@ CAPS      := cap_bpf,cap_perfmon,cap_sys_admin+ep
 # Default: build the binary, then grant it the eBPF caps so it runs unprivileged.
 all: setcap
 
-# Build only — used by the PKGBUILD, which grants caps at install time instead.
+# Build the binary without granting caps (handy for CI / packaging).
 build: $(BIN)
 
 # Compiled next to tracer.go so the Go build can //go:embed it into the binary.
