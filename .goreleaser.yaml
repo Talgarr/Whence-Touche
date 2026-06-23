@@ -1,0 +1,117 @@
+# GoReleaser config for Whence Touché — https://goreleaser.com
+# Builds the binary for amd64/arm64 and produces deb/rpm/apk/archlinux packages,
+# plus a tarball, checksums and an SBOM, then publishes to GitHub Releases.
+#
+# Local dry run (no publishing):
+#   goreleaser release --snapshot --clean --skip=sbom,sign
+# Real release: push a tag (e.g. `git tag v0.2.0 && git push --tags`); CI does the rest.
+version: 2
+
+project_name: whence-touche
+
+before:
+  hooks:
+    - make internal/tracer/tracer.bpf.o
+
+builds:
+  - id: whence-touche
+    main: .
+    binary: whence-touche
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: tarball
+    formats:
+      - tar.gz
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    files:
+      - LICENSE
+      - README.md
+      - packaging/whence-touche.service
+
+nfpms:
+  - id: packages
+    package_name: whence-touche
+    vendor: Talgarr
+    homepage: https://github.com/Talgarr/Whence-Touche
+    maintainer: Sébastien Graveline <graveline.seb@gmail.com>
+    description: |-
+      Shows which tool triggered a YubiKey touch (eBPF-based).
+      Desktop notifier that names the program asking for a security-key touch
+      and clears the notification once the touch is done.
+    license: MIT
+    section: utils
+    priority: optional
+    formats:
+      - deb
+      - rpm
+      - apk
+      - archlinux
+    # setcap (from libcap) is needed by the post-install script below.
+    dependencies:
+      - libcap
+    overrides:
+      deb:
+        dependencies:
+          - libcap2-bin
+    contents:
+      - src: packaging/whence-touche.service
+        dst: /usr/lib/systemd/user/whence-touche.service
+        file_info:
+          mode: 0644
+      - src: LICENSE
+        dst: /usr/share/licenses/whence-touche/LICENSE
+        file_info:
+          mode: 0644
+    scripts:
+      postinstall: packaging/postinstall.sh
+
+checksum:
+  name_template: checksums.txt
+
+sboms:
+  - artifacts: archive
+
+snapshot:
+  version_template: "{{ .Version }}-snapshot-{{ .ShortCommit }}"
+
+changelog:
+  use: git
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "^chore:"
+      - "merge"
+
+signs:
+  - cmd: cosign
+    certificate: "${artifact}.pem"
+    output: true
+    artifacts: checksum
+    args:
+      - sign-blob
+      - "--output-certificate=${certificate}"
+      - "--output-signature=${signature}"
+      - "${artifact}"
+      - "--yes"
+
+release:
+  github:
+    owner: Talgarr
+    name: Whence-Touche
+  prerelease: auto

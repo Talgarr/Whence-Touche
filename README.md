@@ -36,12 +36,18 @@ make             # build, then grant caps (sudo) so it runs unprivileged
 ./whence-touche  # or: make run  (uses sudo)
 ```
 
-Or install the Arch package and enable the user service:
+Or grab a prebuilt package for your distro from the
+[latest release](https://github.com/Talgarr/Whence-Touche/releases), install it
+(pick the line for your distro), and enable the user service:
 
 ```
-makepkg -si
+sudo pacman -U  whence-touche_*_linux_amd64.pkg.tar.zst   # Arch
+sudo dpkg -i    whence-touche_*_linux_amd64.deb           # Debian/Ubuntu
+sudo rpm -i     whence-touche_*_linux_amd64.rpm           # Fedora/openSUSE
 systemctl --user enable --now whence-touche
 ```
+
+The package's post-install grants the eBPF caps for you, so no `make setcap` is needed.
 
 ## Configuration
 
