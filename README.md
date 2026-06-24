@@ -39,6 +39,10 @@ make             # build, then grant caps (sudo) so it runs unprivileged
 ./whence-touche  # or: make run  (uses sudo)
 ```
 
+Don't want to install `clang`/`libbpf`/Go yourself? `nix develop` drops you into
+a shell with the whole build toolchain (see [`flake.nix`](flake.nix)), then
+`make` works as above.
+
 Or grab a prebuilt package for your distro from the
 [latest release](https://github.com/Talgarr/Whence-Touche/releases), install it
 (pick the line for your distro), and enable the user service:
@@ -78,6 +82,16 @@ Environment variables (prefix `WHENCE_`):
 | browsers | WebAuthn / passkey |
 
 Unrecognised callers show the raw process chain.
+
+## Testing
+
+`go test ./...` covers the debounce/classification logic. For a real end-to-end
+check, `make e2e` builds the tool and drives a live operation through **every
+supported tool** against your actual YubiKey, asserting each is detected. It runs
+in a [Nix dev shell](flake.nix) that provides the build toolchain plus all the
+tools under test, so nothing needs installing. It needs a physical key and human
+touches, so it's a local manual check rather than a CI job — see
+[`e2e/`](e2e/README.md).
 
 ## License
 

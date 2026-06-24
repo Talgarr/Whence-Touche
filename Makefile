@@ -11,11 +11,13 @@ CAPS      := cap_bpf,cap_perfmon,cap_sys_admin+ep
 # Debian/Ubuntu keep the arch-specific <asm/*.h> uapi headers under a multiarch
 # triplet (e.g. /usr/include/x86_64-linux-gnu); Arch keeps them in /usr/include.
 # Add the triplet dir only when it exists, so the BPF object compiles on both.
+# `?=` lets the environment override these (the Nix dev shell points them at the
+# Nix-provided headers instead of /usr/include — see flake.nix).
 ARCH_TRIPLET := $(shell uname -m)-linux-gnu
-BPF_CFLAGS   := -O2 -g -Wall -target bpf -I/usr/include \
+BPF_CFLAGS   ?= -O2 -g -Wall -target bpf -I/usr/include \
                 $(if $(wildcard /usr/include/$(ARCH_TRIPLET)/asm),-I/usr/include/$(ARCH_TRIPLET))
 
-.PHONY: all build clean run setcap
+.PHONY: all build clean run setcap e2e
 
 # Default: build the binary, then grant it the eBPF caps so it runs unprivileged.
 all: setcap
@@ -43,6 +45,13 @@ setcap: $(BIN)
 # -E keeps the session bus so notifications reach your desktop.
 run: build
 	sudo -E ./$(BIN) -verbose
+
+# End-to-end harness: build + run the tool against the host's real YubiKey and
+# exercise every supported tool. Runs inside the Nix dev shell (flake.nix) so
+# the build toolchain and all the tools are provided. Needs a physical key + a
+# human to touch it + sudo (eBPF caps). See e2e/README.md.
+e2e:
+	nix develop --command ./e2e/run.sh
 
 clean:
 	rm -f $(BPF_OBJ) $(BIN)
