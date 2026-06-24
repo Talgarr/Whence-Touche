@@ -2,6 +2,8 @@
 set -e
 
 BIN=/usr/bin/whence-touche
+# cap_bpf + cap_perfmon + cap_sys_admin load and attach the eBPF probes; the
+# in-kernel request graph attributes agent-mediated touches with no extra caps.
 CAPS=cap_bpf,cap_perfmon,cap_sys_admin+ep
 
 if command -v setcap >/dev/null 2>&1; then

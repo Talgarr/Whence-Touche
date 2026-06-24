@@ -14,17 +14,78 @@ type Process struct {
 	Args []string // argv from /proc/PID/cmdline; may be empty for kernel threads
 }
 
-// Name returns the most precise process name: basename of argv[0] when
-// present, kernel comm otherwise.
+// shells are interpreters we look through: a process running `bash /usr/bin/pass`
+// is, for classification, "pass" — the script it runs, not the interpreter.
+var shells = map[string]bool{
+	"sh": true, "bash": true, "dash": true, "zsh": true,
+	"ksh": true, "ash": true, "fish": true,
+}
+
+// Name returns the most precise process name: the basename of argv[0] when
+// present, the kernel comm otherwise. Args are first run through
+// NormalizeShellArgs, so a tool shipped as a shell script — e.g. pass, seen as
+// `bash /usr/bin/pass …` — is named after the tool, not the interpreter.
 func (p Process) Name() string {
-	if len(p.Args) > 0 {
-		// argv[0] may be a rewritten process title holding the whole command
-		// line (e.g. Chromium has no NUL separators), so take its first field.
-		if fields := strings.Fields(p.Args[0]); len(fields) > 0 {
-			return filepath.Base(fields[0])
-		}
+	if base := argv0Base(NormalizeShellArgs(p.Args)); base != "" {
+		return base
 	}
 	return p.Comm
+}
+
+// NormalizeShellArgs rewrites a shell-script invocation to read like a direct
+// one: `bash -e /usr/bin/pass show x` becomes `[pass show x]`. This makes a tool
+// shipped as a shell script classify by name AND parse its own arguments (rather
+// than the interpreter's). Non-shell invocations are returned unchanged.
+// proctree applies this when building the tree, so every rule sees clean argv.
+func NormalizeShellArgs(args []string) []string {
+	base := argv0Base(args)
+	if base == "" || !shells[base] {
+		return args
+	}
+	// The first non-flag argument is the script the shell runs (or the first
+	// word of a -c command); rewrite it as argv[0] with its arguments after it.
+	for i := 1; i < len(args); i++ {
+		a := args[i]
+		if a == "" || strings.HasPrefix(a, "-") {
+			continue
+		}
+		out := make([]string, 0, len(args)-i)
+		out = append(out, denixWrapper(filepath.Base(firstField(a))))
+		out = append(out, args[i+1:]...)
+		return out
+	}
+	return args
+}
+
+// argv0Base is the de-wrapped basename of the first field of argv[0], or "".
+// argv[0] may be a rewritten process title holding the whole command line (e.g.
+// Chromium has no NUL separators), so take its first field.
+func argv0Base(args []string) string {
+	if len(args) == 0 {
+		return ""
+	}
+	ff := firstField(args[0])
+	if ff == "" {
+		return ""
+	}
+	return denixWrapper(filepath.Base(ff))
+}
+
+func firstField(s string) string {
+	if f := strings.Fields(s); len(f) > 0 {
+		return f[0]
+	}
+	return ""
+}
+
+// denixWrapper unwraps Nix's wrapper naming: wrapProgram moves a program `foo`
+// to `.foo-wrapped` and ships a `foo` wrapper; the running process often shows
+// as `.foo-wrapped`, so map it back to `foo`.
+func denixWrapper(name string) string {
+	if strings.HasPrefix(name, ".") && strings.HasSuffix(name, "-wrapped") {
+		return name[1 : len(name)-len("-wrapped")]
+	}
+	return name
 }
 
 // Classification is the structured output produced by a Rule.
