@@ -60,6 +60,7 @@ Environment variables (prefix `WHENCE_`):
 | `WHENCE_QUIET` | `500ms` | silence before a touch is considered done |
 | `WHENCE_SWEEP` | `200ms` | how often idle sessions are checked |
 | `WHENCE_DEBUG` | `false` | debug logging (same as `-verbose`) |
+| `WHENCE_NOTIFIER` | `dbus` | notification backend: `dbus` (desktop) or `log` (log only) |
 
 ## Supported tools
 
