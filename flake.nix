@@ -7,7 +7,9 @@
     let
       # eBPF (and this tool) are Linux-only.
       systems = [ "x86_64-linux" "aarch64-linux" ];
-      forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
+      # 1Password's CLI (`op`) is unfree; allow it so the e2e shell can run it.
+      forAllSystems = f: nixpkgs.lib.genAttrs systems (system:
+        f (import nixpkgs { inherit system; config.allowUnfree = true; }));
     in
     {
       # `nix develop` drops you into a shell that can BUILD the tool and RUN
@@ -36,6 +38,7 @@
             pkgs.age                # age
             pkgs.rage               # rage
             pkgs.git                # git
+            pkgs._1password-cli     # op (1Password CLI)
             pkgs.yubikey-manager    # ykman (key diagnostics)
             pkgs.age-plugin-yubikey # age + YubiKey via PIV
             pkgs.libfido2           # fido2-token etc. for FIDO diagnostics
