@@ -309,8 +309,31 @@ test_browser() {
 	show_stack
 }
 
+test_pam() {
+	command -v sudo >/dev/null || { record pam SKIP "sudo not installed"; return; }
+	# pam_u2f is system config (root-owned /etc/pam.d) and may not be set up.
+	# Only run if it looks configured: some /etc/pam.d file references pam_u2f
+	# AND a key mapping exists. Otherwise SKIP — we can't configure it here.
+	local keys="${XDG_CONFIG_HOME:-$HOME/.config}/Yubico/u2f_keys"
+	if ! grep -rqs pam_u2f /etc/pam.d/ 2>/dev/null ||
+		{ [ ! -s "$keys" ] && [ ! -s /etc/u2f_mappings ]; }; then
+		record pam SKIP "pam_u2f not configured (add pam_u2f to /etc/pam.d with a touch-required key)"
+		return
+	fi
+	ask_run "pam — authenticate via sudo (pam_u2f / FIDO2 touch)" || { record pam SKIP "skipped"; return; }
+	say "When sudo prompts, touch your YubiKey to authenticate via pam_u2f."
+	touch_now "enter your FIDO PIN if prompted"; mark
+	# Invalidate cached creds first so PAM actually runs, then authenticate.
+	sudo -k 2>/dev/null
+	if timeout "$TOUCH_TIMEOUT" sudo -v >"$WORK/pam.log" 2>&1; then
+		finish pam sudo
+	else
+		record pam FAIL "sudo authentication failed/timed out (see $WORK/pam.log)"
+	fi
+}
+
 # --- driver -------------------------------------------------------------------
-ALL=(gpg pass gopass sops git ssh age browser)
+ALL=(gpg pass gopass sops git ssh age browser pam)
 if [ "$#" -gt 0 ]; then SELECTED=("$@"); else SELECTED=("${ALL[@]}"); fi
 
 say "Testing: ${SELECTED[*]}"
