@@ -309,8 +309,20 @@ test_browser() {
 	show_stack
 }
 
+test_1password() {
+	if [ ! -t 0 ]; then record 1password SKIP "manual test needs a TTY"; return; fi
+	ask_run "1password — unlock / sign in with your security key (desktop app or 'op')" || { record 1password SKIP "skipped"; return; }
+	command -v op >/dev/null 2>&1 || say "('op' CLI not found — use the 1Password desktop app instead)"
+	say "In 1Password, do something that prompts for your YubiKey — unlock with a"
+	say "security key, or 'op signin' on an account whose 2FA is a security key —"
+	say "and touch the key when it blinks."
+	mark
+	read -r -p "   press Enter once the 1Password touch is done… " _
+	finish 1password 1password
+}
+
 # --- driver -------------------------------------------------------------------
-ALL=(gpg pass gopass sops git ssh age browser)
+ALL=(gpg pass gopass sops git ssh age browser 1password)
 if [ "$#" -gt 0 ]; then SELECTED=("$@"); else SELECTED=("${ALL[@]}"); fi
 
 say "Testing: ${SELECTED[*]}"
