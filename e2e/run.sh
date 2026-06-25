@@ -309,8 +309,46 @@ test_browser() {
 	show_stack
 }
 
+# yubikey-agent is a standalone PIV ssh-agent: it serves one SSH key from the
+# YubiKey PIV slot, and with touch-policy=always every signature it makes needs
+# a touch. We start it on a scratch socket and run `ssh-add -T` (sign+verify)
+# against the key it serves — that signing op is the measured touch. The agent
+# is killed on every exit path. The hyphenated function name is fine: bash
+# defines it and the driver reaches it via the "test_$t" indirection.
+test_yubikey-agent() {
+	command -v yubikey-agent >/dev/null || { record yubikey-agent SKIP "yubikey-agent not installed"; return; }
+	command -v ssh-add >/dev/null || { record yubikey-agent SKIP "ssh-add not installed"; return; }
+	ask_run "yubikey-agent — sign with the PIV ssh key it serves" || { record yubikey-agent SKIP "skipped"; return; }
+	local sock="$WORK/yubikey-agent.sock"
+	yubikey-agent -l "$sock" >"$WORK/ya.log" 2>&1 & local ya_pid=$!
+	local i
+	for i in $(seq 1 20); do
+		[ -S "$sock" ] && break
+		kill -0 "$ya_pid" 2>/dev/null || break
+		sleep 0.25
+	done
+	if [ ! -S "$sock" ] || ! kill -0 "$ya_pid" 2>/dev/null; then
+		record yubikey-agent SKIP "agent failed to start (run 'yubikey-agent --setup' first? see $WORK/ya.log)"
+		kill "$ya_pid" 2>/dev/null
+		return
+	fi
+	SSH_AUTH_SOCK="$sock" ssh-add -L >"$WORK/ya.pub" 2>>"$WORK/ya.log"
+	if [ ! -s "$WORK/ya.pub" ]; then
+		record yubikey-agent SKIP "agent served no key"
+		kill "$ya_pid" 2>/dev/null
+		return
+	fi
+	touch_now "enter your PIV PIN if prompted"; mark
+	if SSH_AUTH_SOCK="$sock" timeout "$TOUCH_TIMEOUT" ssh-add -T "$WORK/ya.pub" >>"$WORK/ya.log" 2>&1; then
+		finish yubikey-agent yubikey-agent
+	else
+		record yubikey-agent FAIL "ssh-add -T failed/timed out (see $WORK/ya.log)"
+	fi
+	kill "$ya_pid" 2>/dev/null
+}
+
 # --- driver -------------------------------------------------------------------
-ALL=(gpg pass gopass sops git ssh age browser)
+ALL=(gpg pass gopass sops git ssh age browser yubikey-agent)
 if [ "$#" -gt 0 ]; then SELECTED=("$@"); else SELECTED=("${ALL[@]}"); fi
 
 say "Testing: ${SELECTED[*]}"

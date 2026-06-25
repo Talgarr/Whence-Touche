@@ -16,5 +16,6 @@ func All() []classifier.Rule {
 		GPG{},
 		Browser{},
 		SSH{},
+		YubiKeyAgent{},
 	}
 }
