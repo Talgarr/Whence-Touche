@@ -286,6 +286,26 @@ test_age() {
 	fi
 }
 
+test_keepassxc() {
+	command -v keepassxc-cli >/dev/null || { record keepassxc SKIP "keepassxc-cli not installed"; return; }
+	ask_run "keepassxc — open a .kdbx secured by your YubiKey challenge-response (slot 2)" || { record keepassxc SKIP "skipped"; return; }
+	# Setup (counts as setup touches, like gopass): create an ephemeral database
+	# protected by a password AND a YubiKey HMAC-SHA1 challenge-response key on
+	# slot 2 (-y 2). Adding the challenge-response key during db-create blinks the
+	# key for a touch — that is a SETUP touch, not the measured one.
+	printf 'e2e-pw\ne2e-pw\n' | keepassxc-cli db-create -p -y 2 "$WORK/e2e.kdbx" >"$WORK/kpxc.log" 2>&1 ||
+		{ record keepassxc SKIP "db-create failed (YubiKey challenge-response slot configured? see $WORK/kpxc.log)"; return; }
+	say "the upcoming OPEN (keepassxc-cli ls) is the measured touch"
+	touch_now; mark
+	# Measured op: `ls` lists entries, which unlocks the database — the password is
+	# read from stdin and the challenge-response slot blinks for the touch.
+	if printf 'e2e-pw\n' | timeout "$TOUCH_TIMEOUT" keepassxc-cli ls -y 2 "$WORK/e2e.kdbx" >>"$WORK/kpxc.log" 2>&1; then
+		finish keepassxc keepassxc
+	else
+		record keepassxc FAIL "keepassxc-cli open failed/timed out (see $WORK/kpxc.log)"
+	fi
+}
+
 test_browser() {
 	if [ ! -t 0 ]; then record browser SKIP "manual test needs a TTY"; return; fi
 	ask_run "browser — WebAuthn/passkey at webauthn.io (opens your default browser)" || { record browser SKIP "skipped"; return; }
@@ -310,7 +330,7 @@ test_browser() {
 }
 
 # --- driver -------------------------------------------------------------------
-ALL=(gpg pass gopass sops git ssh age browser)
+ALL=(gpg pass gopass sops git ssh age browser keepassxc)
 if [ "$#" -gt 0 ]; then SELECTED=("$@"); else SELECTED=("${ALL[@]}"); fi
 
 say "Testing: ${SELECTED[*]}"

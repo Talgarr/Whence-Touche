@@ -11,6 +11,7 @@ func All() []classifier.Rule {
 		SOPS{},
 		Gopass{},
 		Pass{},
+		KeePassXC{},
 		Age{},
 		Git{},
 		GPG{},
