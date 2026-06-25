@@ -309,8 +309,26 @@ test_browser() {
 	show_stack
 }
 
+test_ykman() {
+	command -v ykman >/dev/null || { record ykman SKIP "ykman not installed"; return; }
+	ask_run "ykman — generate a touch-required OATH code" || { record ykman SKIP "skipped"; return; }
+	# Add an ephemeral touch-required TOTP credential (secret must be valid base32).
+	ykman oath accounts add --touch whence-touche-e2e GEZDGNBVGY3TQOJQ -f >"$WORK/ykman.log" 2>&1 ||
+		{ record ykman SKIP "ykman oath add failed — OATH applet locked/unavailable? (see $WORK/ykman.log)"; return; }
+	touch_now; mark
+	# Generating the code is the measured touch. Delete the credential right after
+	# on both the PASS and FAIL paths so it never lingers on the key.
+	if timeout "$TOUCH_TIMEOUT" ykman oath accounts code whence-touche-e2e >>"$WORK/ykman.log" 2>&1; then
+		ykman oath accounts delete whence-touche-e2e -f >/dev/null 2>&1
+		finish ykman ykman
+	else
+		ykman oath accounts delete whence-touche-e2e -f >/dev/null 2>&1
+		record ykman FAIL "ykman oath code failed/timed out (touch policy enabled? see $WORK/ykman.log)"
+	fi
+}
+
 # --- driver -------------------------------------------------------------------
-ALL=(gpg pass gopass sops git ssh age browser)
+ALL=(gpg pass gopass sops git ssh age browser ykman)
 if [ "$#" -gt 0 ]; then SELECTED=("$@"); else SELECTED=("${ALL[@]}"); fi
 
 say "Testing: ${SELECTED[*]}"
