@@ -1,62 +1,35 @@
-// Package notifier sends desktop notifications via the org.freedesktop.Notifications
-// DBus interface.  Using DBus directly (instead of notify-send) lets us obtain
-// the notification ID so we can dismiss it programmatically once the YubiKey
-// has been touched.
+// Package notifier shows and dismisses "touch your security key" notifications.
+//
+// A backend is chosen at startup with New: the default DBus backend posts real
+// desktop notifications via the org.freedesktop.Notifications interface, while
+// the Log backend only writes to the log. The Log backend needs no session bus
+// or notification daemon, so it suits headless runs and the container e2e
+// harness, which asserts the resolved tool from the log line alone.
 package notifier
 
 import (
-	"fmt"
-
-	"github.com/godbus/dbus/v5"
+	"errors"
 )
 
-const (
-	dest  = "org.freedesktop.Notifications"
-	opath = "/org/freedesktop/Notifications"
-	iface = "org.freedesktop.Notifications"
-)
-
-// TouchNeeded shows a persistent critical-urgency notification asking the user
-// to touch their YubiKey.  It never expires automatically; call Close with the
-// returned ID once the touch is detected.
-func TouchNeeded(body string) (uint32, error) {
-	conn, err := dbus.SessionBus()
-	if err != nil {
-		return 0, fmt.Errorf("session bus: %w", err)
-	}
-
-	hints := map[string]dbus.Variant{
-		"urgency": dbus.MakeVariant(byte(2)), // 2 = critical
-	}
-
-	call := conn.Object(dest, opath).Call(
-		iface+".Notify", 0,
-		"Whence Touché",      // app_name
-		uint32(0),            // replaces_id  (0 = new notification)
-		"dialog-password",    // app_icon
-		"Touch your YubiKey", // summary
-		body,                 // body
-		[]string{},           // actions
-		hints,                // hints
-		int32(0),             // expire_timeout: 0 = never expire
-	)
-	if call.Err != nil {
-		return 0, call.Err
-	}
-	var id uint32
-	if err := call.Store(&id); err != nil {
-		return 0, err
-	}
-	return id, nil
+// Notifier announces a pending security-key touch and later dismisses it.
+//
+// TouchNeeded posts a notification for body and returns an ID; once the touch
+// completes, Close dismisses the notification with that ID. Backends that have
+// nothing on screen to dismiss (e.g. Log) may ignore the ID.
+type Notifier interface {
+	TouchNeeded(body string) (uint32, error)
+	Close(id uint32)
 }
 
-// Close dismisses a notification by the ID returned from TouchNeeded.
-// Errors are silently discarded — the notification daemon may have already
-// closed it (e.g. the user clicked it away).
-func Close(id uint32) {
-	conn, err := dbus.SessionBus()
-	if err != nil {
-		return
+// New returns the notifier backend named by name: "dbus" for desktop
+// notifications, "log" for the log-only backend. Any other name is an error.
+func New(name string) (Notifier, error) {
+	switch name {
+	case "log":
+		return Log{}, nil
+	case "dbus":
+		return DBus{}, nil
+	default:
+		return nil, errors.New("unknown notifier type")
 	}
-	conn.Object(dest, opath).Call(iface+".CloseNotification", 0, id)
 }

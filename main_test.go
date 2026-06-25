@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Talgarr/Whence-Touche/internal/notifier"
 	"github.com/Talgarr/Whence-Touche/internal/tracer"
 )
 
@@ -90,7 +91,7 @@ func TestHandleEventAccumulates(t *testing.T) {
 	// A short burst of events, all within the same instant for test purposes:
 	// count climbs past the threshold but the span stays ~0, so nothing shows.
 	for i := 0; i < 5; i++ {
-		handleEvent(nil, sessions, ev, 3, 500*time.Millisecond)
+		handleEvent(nil, sessions, ev, 3, 500*time.Millisecond, notifier.Log{})
 	}
 
 	s := sessions[sessionKey{ev.Source, ev.PID}]

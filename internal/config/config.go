@@ -15,6 +15,10 @@ type Config struct {
 	Quiet           time.Duration `envconfig:"QUIET" default:"500ms"`
 	Sweep           time.Duration `envconfig:"SWEEP" default:"200ms"`
 	Debug           bool          `envconfig:"DEBUG"`
+	// Notifier selects the notification backend: "dbus" (default) posts desktop
+	// notifications; "log" only logs touches — for headless runs and the
+	// container e2e harness. See internal/notifier.
+	Notifier string `envconfig:"NOTIFIER" default:"dbus"`
 }
 
 // Load reads config from the environment (prefix WHENCE_).

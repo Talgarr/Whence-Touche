@@ -49,6 +49,8 @@ func (s *session) ready(threshold int, delay time.Duration) bool {
 func main() {
 	cfg, cfgErr := config.Load()
 	verbose := flag.Bool("verbose", cfg.Debug, "enable debug logging (or set WHENCE_DEBUG=true)")
+	backend := flag.String("notifier", cfg.Notifier,
+		`notification backend: "dbus" for desktop notifications, "log" to only log touches (or set WHENCE_NOTIFIER)`)
 	flag.Parse()
 
 	level := zerolog.InfoLevel
@@ -69,6 +71,11 @@ func main() {
 	}
 	defer tr.Close()
 
+	ntf, err := notifier.New(*backend)
+	if err != nil {
+		log.Fatal().Err(err).Msg("set WHENCE_NOTIFIER to supported value")
+	}
+
 	allRules := rules.All()
 	sessions := make(map[sessionKey]*session)
 
@@ -84,7 +91,7 @@ func main() {
 				log.Warn().Msg("tracer event stream closed")
 				return
 			}
-			handleEvent(allRules, sessions, ev, cfg.NotifyThreshold, cfg.NotifyDelay)
+			handleEvent(allRules, sessions, ev, cfg.NotifyThreshold, cfg.NotifyDelay, ntf)
 
 		case <-ticker.C:
 			now := time.Now()
@@ -93,7 +100,7 @@ func main() {
 					continue
 				}
 				if s.shown {
-					notifier.Close(s.notifID)
+					ntf.Close(s.notifID)
 					log.Debug().Str("kind", key.src.Kind()).Uint32("pid", key.pid).Msg("touch done")
 				}
 				delete(sessions, key)
@@ -103,8 +110,9 @@ func main() {
 }
 
 // handleEvent records an I/O and notifies once a session shows sustained
-// activity (see session.ready).
-func handleEvent(allRules []clsf.Rule, sessions map[sessionKey]*session, ev tracer.Event, threshold int, delay time.Duration) {
+// activity (see session.ready). The notifier ntf decides how the touch is
+// surfaced — a desktop notification or a log line (see internal/notifier).
+func handleEvent(allRules []clsf.Rule, sessions map[sessionKey]*session, ev tracer.Event, threshold int, delay time.Duration, ntf notifier.Notifier) {
 	key := sessionKey{ev.Source, ev.PID}
 	s := sessions[key]
 	now := time.Now()
@@ -123,7 +131,7 @@ func handleEvent(allRules []clsf.Rule, sessions map[sessionKey]*session, ev trac
 	body := buildBody(allRules, ev)
 	log.Debug().Str("kind", ev.Source.Kind()).Uint32("pid", ev.PID).Str("body", body).Msg("touch needed")
 
-	id, err := notifier.TouchNeeded(body)
+	id, err := ntf.TouchNeeded(body)
 	if err != nil {
 		log.Warn().Err(err).Msg("send notification")
 		return
