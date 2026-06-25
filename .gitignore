@@ -7,3 +7,6 @@ vendor/
 
 # goreleaser output
 /dist/
+
+# e2e run log (default E2E_LOG path)
+/e2e/last-run.log
