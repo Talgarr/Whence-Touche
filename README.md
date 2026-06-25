@@ -23,7 +23,10 @@ the actual tool and its target.
 
 - Linux with eBPF + BTF (`/sys/kernel/btf/vmlinux`) — standard on modern kernels.
 - Privilege to load eBPF: run as root, or grant the binary
-  `cap_bpf,cap_perfmon,cap_sys_admin` (the package does this for you).
+  `cap_bpf,cap_perfmon,cap_sys_admin` (the package does this for you) to load and
+  attach the probes. The real client behind an agent-mediated touch (gpg via
+  gpg-agent, FIDO via ssh-agent) is resolved entirely in-kernel by the eBPF
+  request graph, so no `/proc`-scanning privileges are needed.
 - `clang` to build the BPF object.
 - A notification daemon (`dunst`, `mako`, `swaync`, …).
 

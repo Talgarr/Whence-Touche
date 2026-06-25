@@ -18,7 +18,10 @@ func Walk(pid uint32) []clsf.Process {
 	for p := pid; p > 1 && !seen[p]; {
 		seen[p] = true
 		comm, args, ppid := info(p)
-		chain = append(chain, clsf.Process{PID: p, Comm: comm, Args: args})
+		// Normalize shell-script invocations (e.g. `bash /usr/bin/pass show`)
+		// so the tool — not the interpreter — names the process and its args
+		// parse correctly.
+		chain = append(chain, clsf.Process{PID: p, Comm: comm, Args: clsf.NormalizeShellArgs(args)})
 		p = ppid
 	}
 	// Reverse: oldest ancestor first.
