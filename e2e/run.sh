@@ -309,8 +309,19 @@ test_browser() {
 	show_stack
 }
 
+test_bitwarden() {
+	if [ ! -t 0 ]; then record bitwarden SKIP "manual test needs a TTY"; return; fi
+	ask_run "bitwarden — unlock / log in using your YubiKey OTP 2FA (desktop app or 'bw')" || { record bitwarden SKIP "skipped"; return; }
+	command -v bw >/dev/null 2>&1 || say "('bw' CLI not found — use the Bitwarden desktop app instead)"
+	say "In Bitwarden, do an unlock/login that uses the YubiKey OTP 2FA method"
+	say "(desktop app or 'bw login --method 0') and touch the key to emit the code."
+	mark
+	read -r -p "   press Enter once the Bitwarden touch is done… " _
+	finish bitwarden bitwarden
+}
+
 # --- driver -------------------------------------------------------------------
-ALL=(gpg pass gopass sops git ssh age browser)
+ALL=(gpg pass gopass sops git ssh age browser bitwarden)
 if [ "$#" -gt 0 ]; then SELECTED=("$@"); else SELECTED=("${ALL[@]}"); fi
 
 say "Testing: ${SELECTED[*]}"
