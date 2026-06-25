@@ -39,6 +39,7 @@
             pkgs.yubikey-manager    # ykman (key diagnostics)
             pkgs.age-plugin-yubikey # age + YubiKey via PIV
             pkgs.libfido2           # fido2-token etc. for FIDO diagnostics
+            pkgs.yubikey-agent      # yubikey-agent (standalone PIV ssh-agent)
             pkgs.xdg-utils          # xdg-open — launch the browser for the WebAuthn test
           ];
         in
