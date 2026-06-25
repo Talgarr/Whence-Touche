@@ -36,6 +36,7 @@
             pkgs.age                # age
             pkgs.rage               # rage
             pkgs.git                # git
+            pkgs.cosign             # cosign (Sigstore signing)
             pkgs.yubikey-manager    # ykman (key diagnostics)
             pkgs.age-plugin-yubikey # age + YubiKey via PIV
             pkgs.libfido2           # fido2-token etc. for FIDO diagnostics
