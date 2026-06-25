@@ -43,6 +43,7 @@ a PASS / FAIL / SKIP matrix and exits non-zero if anything failed.
 | `ssh` | `ssh-keygen -t ed25519-sk` | FIDO2 PIN set on the key |
 | `age` | `age -d` via `age-plugin-yubikey` | PIV identity (best-effort) |
 | browser | opens webauthn.io in your default browser | a passkey/WebAuthn credential |
+| `ykman` | `ykman oath accounts code` (touch-required cred) | a YubiKey with the OATH applet |
 
 The watcher is granted only the eBPF caps (`cap_bpf`, `cap_perfmon`,
 `cap_sys_admin`). An agent-mediated touch (gpg, pass, sops, …) is attributed to
