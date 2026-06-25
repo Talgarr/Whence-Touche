@@ -309,8 +309,22 @@ test_browser() {
 	show_stack
 }
 
+test_cosign() {
+	command -v cosign >/dev/null || { record cosign SKIP "cosign not installed"; return; }
+	local key="${WHENCE_E2E_COSIGN_KEY:-}"
+	[ -n "$key" ] || { record cosign SKIP "set WHENCE_E2E_COSIGN_KEY to a PIV PKCS#11 key URI (touch-policy=always)"; return; }
+	ask_run "cosign — sign a blob with your PIV key ($key)" || { record cosign SKIP "skipped"; return; }
+	printf 'whence-touche-e2e\n' > "$WORK/cosign-blob.txt"
+	touch_now; mark
+	if timeout "$TOUCH_TIMEOUT" cosign sign-blob --yes --key "$key" "$WORK/cosign-blob.txt" >"$WORK/cosign.log" 2>&1; then
+		finish cosign cosign
+	else
+		record cosign FAIL "cosign sign-blob failed/timed out (see $WORK/cosign.log)"
+	fi
+}
+
 # --- driver -------------------------------------------------------------------
-ALL=(gpg pass gopass sops git ssh age browser)
+ALL=(gpg pass gopass sops git ssh age browser cosign)
 if [ "$#" -gt 0 ]; then SELECTED=("$@"); else SELECTED=("${ALL[@]}"); fi
 
 say "Testing: ${SELECTED[*]}"

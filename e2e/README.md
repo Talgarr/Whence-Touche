@@ -43,6 +43,7 @@ a PASS / FAIL / SKIP matrix and exits non-zero if anything failed.
 | `ssh` | `ssh-keygen -t ed25519-sk` | FIDO2 PIN set on the key |
 | `age` | `age -d` via `age-plugin-yubikey` | PIV identity (best-effort) |
 | browser | opens webauthn.io in your default browser | a passkey/WebAuthn credential |
+| `cosign` | `cosign sign-blob --key <pkcs11>` | PIV key via `WHENCE_E2E_COSIGN_KEY` (PKCS#11) |
 
 The watcher is granted only the eBPF caps (`cap_bpf`, `cap_perfmon`,
 `cap_sys_admin`). An agent-mediated touch (gpg, pass, sops, …) is attributed to
@@ -64,6 +65,7 @@ Tools whose credential isn't present are **SKIP**ped with a reason.
 | `WHENCE_E2E_GPG_KEY` | first secret key | GPG key fingerprint to use |
 | `E2E_TOUCH_TIMEOUT` | `60` | seconds to wait for each touch |
 | `E2E_DEBUG` | `0` | `1` runs the watcher with `-verbose` and prints, per test, the full process call stack the classifier saw (plus how the gpg/ssh-agent client was resolved) — use it to explain a misclassification |
+| `WHENCE_E2E_COSIGN_KEY` | _(unset)_ | PIV PKCS#11 key URI for the cosign test (skipped if unset) |
 
 ## Requirements
 
