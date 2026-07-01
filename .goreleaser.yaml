@@ -77,6 +77,13 @@ nfpms:
           mode: 0644
     scripts:
       postinstall: packaging/postinstall.sh
+    # pacman runs post_install() only on a fresh install; replacing an existing
+    # version (pacman -U / -Syu) runs post_upgrade() instead. Without this the
+    # setcap is skipped on upgrades and the binary loses its eBPF caps. deb/rpm
+    # re-run postinstall on upgrade already, so only archlinux needs this.
+    archlinux:
+      scripts:
+        postupgrade: packaging/postinstall.sh
 
 checksum:
   name_template: checksums.txt
